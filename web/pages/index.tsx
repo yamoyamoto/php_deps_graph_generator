@@ -85,9 +85,34 @@ const Home: NextPage = ({ data }: any) => {
   console.log(linkData);
 
   react.useEffect(() => {
+    const marker = d3
+      .select(ref.current)
+      .append("defs")
+      .append("marker")
+      .attr("id", "arrowhead")
+      .attr("refX", 10)
+      .attr("refY", 2)
+      .attr("markerWidth", 30)
+      .attr("markerHeight", 30)
+      .attr("orient", "auto");
+    // .attr({
+    //   id: "arrowhead",
+    //   refX: 0,
+    //   refY: 2,
+    //   markerWidth: 4,
+    //   markerHeight: 4,
+    //   orient: "auto",
+    // });
+    marker.append("path").attr("d", "M 0,0 V 10 L10,5 Z").attr("fill", "steelblue");
+
     const linkEntered = d3.select(ref.current).selectAll("link").data(linkData).enter();
 
-    const link = linkEntered.append("line").attr("stroke-width", 1).attr("stroke-width", 1).attr("stroke", "black");
+    const link = linkEntered
+      .append("line")
+      .attr("stroke-width", 1)
+      .attr("stroke-width", 1)
+      .attr("stroke", "black")
+      .attr("marker-end", "url(#arrowhead)");
 
     const nodeEntered = d3.select(ref.current).selectAll("circle").data(nodeData).enter().append("g");
 
@@ -99,6 +124,7 @@ const Home: NextPage = ({ data }: any) => {
 
     nodeEntered
       .append("text")
+      .attr("font-size", "10px")
       .attr("dx", -20)
       .text((d) => {
         return d.label;

@@ -23,12 +23,25 @@ func main() {
 			panic(err)
 		}
 
-		if i > 60 {
+		if i > 100 {
 			break
 		}
 	}
 
 	LogAsJson("deps: ", depsSlice)
+
+	b, err := json.Marshal(depsSlice)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Create("./web/data/deps.json")
+	if err != nil {
+		panic(err)
+	}
+	if _, err := f.Write(b); err != nil {
+		panic(err)
+	}
 }
 
 type Deps struct {
@@ -102,7 +115,9 @@ func FindDependency(content []byte) ([]string, error) {
 
 	strSlice := make([]string, 0)
 	for _, i_v := range match {
-		strSlice = append(strSlice, string(i_v[1]))
+		if !strings.Contains(string(i_v[1]), "Illuminate"){
+			strSlice = append(strSlice, string(i_v[1]))
+		}
 	}
 	return strSlice, nil
 }
