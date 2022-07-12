@@ -1,21 +1,24 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
-	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 func main() {
-	fileList, err := DirWalk("./framework")
+	fileList, err := DirWalk("./koel")
 	if err != nil {
 		panic(err)
 	}
 
+	depsSlice := make([]Deps, 0)
 	for i, file := range fileList {
-		err := ParseFile(file)
+		deps, err := ParseFile(file)
+		depsSlice = append(depsSlice, deps...)
 		if err != nil {
 			panic(err)
 		}
@@ -25,34 +28,72 @@ func main() {
 		}
 	}
 
+	LogAsJson("deps: ", depsSlice)
 }
 
-func ParseFile(filePath string) error {
+type Deps struct {
+	From *FromDependencies `json:"from"`
+	To   *ToDependencies   `json:"to"`
+}
+
+type FromDependencies struct {
+	Path string `json:"path"`
+}
+
+type ToDependencies struct {
+	Path string `json:"path"`
+}
+
+func LogAsJson(message string, v interface{}) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		log.Printf("failed to marshal json %v with error %v", v, err)
+	}
+	log.Println(message, string(b))
+}
+
+func ParseFile(filePath string) ([]Deps, error) {
 	reg := regexp.MustCompile(`.*\.php`)
 	match := reg.MatchString(filePath)
 	if !match {
-		return nil
+		return nil, nil
 	}
 
 	f, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer f.Close()
 
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	deps, err := FindDependency(b)
 	if err != nil {
 		panic(err)
 	}
 
+	depsSlice := make([]Deps, 0)
 	for _, v := range deps {
-		fmt.Printf("find dependency at %s: %s\n", filePath, v)
+		depsSlice = append(depsSlice, Deps{
+			From: &FromDependencies{
+				Path: FormatFromFilePath(filePath),
+			},
+			To: &ToDependencies{
+				Path: FormatToPath(v),
+			},
+		})
 	}
-	return nil
+	return depsSlice, nil
+}
+
+func FormatFromFilePath(fromFilePath string) string {
+	return strings.Replace(fromFilePath, "koel/", "", -1)
+}
+
+func FormatToPath(toPath string) string {
+	return strings.Replace(toPath, "\\", "/", -1)
 }
 
 func FindDependency(content []byte) ([]string, error) {
@@ -64,29 +105,4 @@ func FindDependency(content []byte) ([]string, error) {
 		strSlice = append(strSlice, string(i_v[1]))
 	}
 	return strSlice, nil
-}
-
-func DirWalk(dir string) ([]string, error) {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("read dir: %w", err)
-	}
-
-	var paths []string
-	for _, file := range files {
-		if file.IsDir() {
-			// Recursively calls Dirwalk in the case of a directory
-			p, err := DirWalk(filepath.Join(dir, file.Name()))
-			if err != nil {
-				return nil, fmt.Errorf("dirwalk %s: %w", filepath.Join(dir, file.Name()), err)
-			}
-			// Merge into the caller's "paths" variable.
-			paths = append(paths, p...)
-			continue
-		}
-		// Now that we've reached a leaf (file) in the directory tree, we'll add it to "paths" variable.
-		paths = append(paths, filepath.Join(dir, file.Name()))
-	}
-
-	return paths, nil
 }
