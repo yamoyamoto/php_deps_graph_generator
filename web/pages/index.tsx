@@ -145,7 +145,7 @@ const Home: NextPage = ({ data }: any) => {
 };
 
 export async function getStaticProps() {
-  const data = JSON.parse(fs.readFileSync("../data/deps.json", "utf-8"));
+  const data = JSON.parse(fs.readFileSync("./data/deps.json", "utf-8"));
   return {
     props: {
       data,
