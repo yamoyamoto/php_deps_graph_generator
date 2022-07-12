@@ -74,7 +74,7 @@ const buildData = (data: any[]) => {
   };
 };
 
-const Home: NextPage = ({ data }) => {
+const Home: NextPage = ({ data }: any) => {
   const ref = react.useRef(null);
   const parsedData = buildData(data);
   const linkData = parsedData.linkData;
